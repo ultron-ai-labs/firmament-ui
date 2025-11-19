@@ -1,0 +1,109 @@
+<template>
+  <div v-if="routerView" class="app-main-container">
+    <transition mode="out-in" name="fade-transform">
+      <keep-alive :include="cachedRoutes" :max="keepAliveMaxNum">
+        <router-view :key="key" class="app-main-height" />
+      </keep-alive>
+    </transition>
+    <footer v-show="footerCopyright" class="footer-copyright">
+      Copyright
+      <vab-icon :icon="['fas', 'copyright']"></vab-icon>
+      firmament-ui {{ fullYear }}
+      <p>
+        Powered by
+        <a href="https://gitee.com/loopstack" target="_blank" style="color: #4d8af0; text-decoration: none">loop stack</a>
+      </p>
+    </footer>
+  </div>
+</template>
+
+<script>
+  import { mapActions, mapGetters } from 'vuex'
+  import { copyright, footerCopyright, keepAliveMaxNum, title } from '@/config'
+
+  export default {
+    name: 'VabAppMain',
+    data() {
+      return {
+        show: false,
+        fullYear: new Date().getFullYear(),
+        copyright,
+        title,
+        keepAliveMaxNum,
+        routerView: true,
+        footerCopyright,
+      }
+    },
+    computed: {
+      ...mapGetters({
+        visitedRoutes: 'tabsBar/visitedRoutes',
+        device: 'settings/device',
+      }),
+      cachedRoutes() {
+        const cachedRoutesArr = []
+        this.visitedRoutes.forEach((item) => {
+          if (!item.meta.noKeepAlive) {
+            cachedRoutesArr.push(item.name)
+          }
+        })
+        return cachedRoutesArr
+      },
+      key() {
+        return this.$route.path
+      },
+    },
+    watch: {
+      $route: {
+        handler(route) {
+          if ('mobile' === this.device) this.foldSideBar()
+        },
+        immediate: true,
+      },
+    },
+    created() {
+      const handleReloadRouterView = () => {
+        this.routerView = false
+        this.$nextTick(() => {
+          this.routerView = true
+        })
+      }
+
+      //重载所有路由
+      this.$baseEventBus.$on('reload-router-view', handleReloadRouterView)
+
+      this.$once('hook:beforeDestroy', () => {
+        this.$baseEventBus.$off('reload-router-view', handleReloadRouterView)
+      })
+    },
+    mounted() {},
+    methods: {
+      ...mapActions({
+        foldSideBar: 'settings/foldSideBar',
+      }),
+    },
+  }
+</script>
+
+<style lang="scss" scoped>
+  .app-main-container {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+
+    .vab-keel {
+      margin: $base-padding;
+    }
+
+    .app-main-height {
+      min-height: $base-app-main-height;
+    }
+
+    .footer-copyright {
+      background: #f6f8f9;
+      padding-top: 15px;
+      min-height: 65px;
+      color: rgba(0, 0, 0, 0.45);
+      text-align: center;
+    }
+  }
+</style>
